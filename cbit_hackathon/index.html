@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Babylon.js GLB Keyframe Animation</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylon.glTF2FileLoader.js"></script>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <input type="text" id="letterInput" placeholder="Enter a letter" maxlength="1">
+    <button onclick="playAnimation()">Animate</button>
+
+    <script>
+        const canvas = document.getElementById("renderCanvas");
+        const engine = new BABYLON.Engine(canvas, true);
+        let scene, model, animationsData = [];
+
+        const createScene = async () => {
+            scene = new BABYLON.Scene(engine);
+
+            // Camera
+            const camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 2.5, 5, BABYLON.Vector3.Zero(), scene);
+            camera.attachControl(canvas, true);
+
+            // Light
+            new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0), scene);
+
+            // Load JSON Keyframes
+            await fetch("mesh_avatar_data.json")
+                .then(response => response.json())
+                .then(data => animationsData = data);
+
+            // Load GLB Model
+            BABYLON.SceneLoader.ImportMesh("", "", "xbot.glb", scene, (meshes) => {
+                model = meshes[0]; // Main mesh
+            });
+
+            return scene;
+        };
+
+        function playAnimation() {
+    if (!model) {
+        alert("Model not loaded yet.");
+        return;
+    }
+
+    console.log("Animations Data:", animationsData); // Debugging
+
+    if (!animationsData || typeof animationsData !== 'object') {
+        alert("Animations data not loaded or in incorrect format.");
+        return;
+    }
+
+    let letter = document.getElementById("letterInput").value.toLowerCase();
+    if (!animationsData.hasOwnProperty(letter)) {
+        alert("No animation found for this letter.");
+        return;
+    }
+
+    let keyFramesData = animationsData[letter]; // Access animation by letter key
+
+    if (!Array.isArray(keyFramesData)) {
+        alert("Invalid keyframe data format.");
+        return;
+    }
+
+    console.log(`Playing animation for: ${letter}`, keyFramesData); // Debugging
+
+    // Create Animation
+    let animation = new BABYLON.Animation(
+        "letterAnimation", "position.y", 30, 
+        BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE
+    );
+
+    // Convert JSON keyframes into Babylon.js keyframes
+    let keyFrames = keyFramesData.map((kf, idx) => ({
+        frame: idx * 10, value: kf.value
+    }));
+
+    animation.setKeys(keyFrames);
+    model.animations = [animation];
+
+    // Run Animation
+    scene.beginAnimation(model, 0, keyFrames.length * 10, false);
+}
+
+
+        createScene().then(() => {
+            engine.runRenderLoop(() => scene.render());
+        });
+
+        window.addEventListener("resize", () => engine.resize());
+    </script>
+</body>
+</html>
