@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Babylon.js ISL Gestures</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <script defer src="handLoader.js"></script>
+    <script defer src="main.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { width: 100vw; height: 90vh; display: block; }
+        #gestureInput, #submitBtn { 
+            position: absolute; top: 10px; left: 10px; 
+            padding: 10px; font-size: 16px;
+        }
+        #submitBtn { margin-left: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <input type="text" id="gestureInput" placeholder="Enter gesture (e.g., hello, a)">
+    <button id="submitBtn">Apply</button>
+    <canvas id="renderCanvas"></canvas>
+</body>
+</html>

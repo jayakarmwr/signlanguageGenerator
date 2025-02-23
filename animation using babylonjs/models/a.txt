@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Babylon.js Hand Gesture</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { width: 100vw; height: 90vh; display: block; }
+        #gestureInput, #submitBtn { 
+            position: absolute; top: 10px; left: 10px; 
+            padding: 10px; font-size: 16px;
+        }
+        #submitBtn { margin-left: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <input type="text" id="gestureInput" placeholder="Enter gesture (hello, bye, yes, no, thank you, please)">
+    <button id="submitBtn">Apply</button>
+    <canvas id="renderCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById("renderCanvas");
+        const engine = new BABYLON.Engine(canvas, true);
+        const scene = new BABYLON.Scene(engine);
+
+        // Camera setup
+        const camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 3, 3, BABYLON.Vector3.Zero(), scene);
+        camera.attachControl(canvas, true);
+        camera.lowerRadiusLimit = 1;
+        camera.upperRadiusLimit = 10;
+        scene.createDefaultLight();
+
+        // Load Hand Model
+        BABYLON.SceneLoader.ImportMesh("", "./models/", "hand_animated_v6.glb", scene, function (meshes) {
+            const hand = meshes[0];
+            scene.stopAllAnimations();
+            hand.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
+            hand.position = new BABYLON.Vector3(0, -0.5, 0);
+            hand.rotation = new BABYLON.Vector3(0, Math.PI, 0);
+
+            // Store fingers
+            const fingers = {};
+            hand.getChildTransformNodes().forEach(node => {
+                const name = node.name.toLowerCase();
+                if (name.includes("thumb")) fingers.thumb = node;
+                if (name.includes("index")) fingers.index = node;
+                if (name.includes("middle")) fingers.middle = node;
+                if (name.includes("ring")) fingers.ring = node;
+                if (name.includes("pinky")) fingers.pinky = node;
+            });
+
+            // Function to animate fingers
+            function animateFinger(finger, rotationX, rotationZ = 0) {
+                if (!finger) return;
+                if (finger.rotationQuaternion) {
+                    finger.rotationQuaternion = null;
+                }
+
+                const animX = new BABYLON.Animation(
+                    "animX", "rotation.x", 30,
+                    BABYLON.Animation.ANIMATIONTYPE_FLOAT,
+                    BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+                );
+                const animZ = new BABYLON.Animation(
+                    "animZ", "rotation.z", 30,
+                    BABYLON.Animation.ANIMATIONTYPE_FLOAT,
+                    BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT
+                );
+
+                animX.setKeys([{ frame: 0, value: finger.rotation.x }, { frame: 10, value: rotationX }]);
+                animZ.setKeys([{ frame: 0, value: finger.rotation.z }, { frame: 10, value: rotationZ }]);
+
+                const easingFunction = new BABYLON.CubicEase();
+                easingFunction.setEasingMode(BABYLON.EasingFunction.EASINGMODE_EASEINOUT);
+                animX.setEasingFunction(easingFunction);
+                animZ.setEasingFunction(easingFunction);
+
+                finger.animations = [animX, animZ];
+                scene.beginAnimation(finger, 0, 10, false);
+            }
+
+            // Sign Language Gestures
+            function helloGesture() {
+                let frame = 0;
+                const shakeAnim = setInterval(() => {
+                    hand.rotation.y += frame % 2 === 0 ? 0.2 : -0.2;
+                    frame++;
+                    if (frame > 6) clearInterval(shakeAnim);
+                }, 100);
+            }
+
+            function byeGesture() {
+                animateFinger(fingers.index, -0.3, 9.3);
+                animateFinger(fingers.middle, -0.3, 9.3);
+                animateFinger(fingers.ring, 0, 0);
+                animateFinger(fingers.pinky, -0.3, 9.3);
+                animateFinger(fingers.thumb, 0, 0);
+            }
+
+            function yesGesture() {
+                animateFinger(fingers.thumb, -0.5);
+                setTimeout(() => animateFinger(fingers.thumb, 0), 500);
+            }
+
+            function noGesture() {
+                animateFinger(fingers.index, -0.5);
+                animateFinger(fingers.middle, -0.5);
+                setTimeout(() => {
+                    animateFinger(fingers.index, 0);
+                    animateFinger(fingers.middle, 0);
+                }, 500);
+            }
+
+            function thankYouGesture() {
+                hand.position.y += 0.2;
+                setTimeout(() => hand.position.y -= 0.2, 500);
+            }
+
+            function pleaseGesture() {
+                let frame = 0;
+                const moveAnim = setInterval(() => {
+                    hand.rotation.y += frame % 2 === 0 ? 0.1 : -0.1;
+                    frame++;
+                    if (frame > 4) clearInterval(moveAnim);
+                }, 200);
+            }
+
+            // Event Listener for Input
+            document.getElementById("submitBtn").addEventListener("click", () => {
+                const gesture = document.getElementById("gestureInput").value.toLowerCase();
+                if (gesture === "hello") helloGesture();
+                if (gesture === "bye") byeGesture();
+                if (gesture === "yes") yesGesture();
+                if (gesture === "no") noGesture();
+                if (gesture === "thank you") thankYouGesture();
+                if (gesture === "please") pleaseGesture();
+            });
+        });
+
+        engine.runRenderLoop(() => scene.render());
+        window.addEventListener("resize", () => engine.resize());
+    </script>
+</body>
+</html>
+
+
+
+"", "./models/", "hand_animated_v6.glb"

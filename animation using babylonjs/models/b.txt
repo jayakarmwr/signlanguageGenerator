@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Babylon.js Hand Model Animation</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <style>
+        body, html { margin: 0; overflow: hidden; width: 100%; height: 100%; }
+        #renderCanvas { width: 100%; height: 100%; display: block; }
+        #inputBox { 
+            position: absolute; 
+            top: 10px; left: 10px; 
+            padding: 10px; font-size: 18px; 
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <input type="text" id="inputBox" placeholder="Type hello or bye..." />
+    <canvas id="renderCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById("renderCanvas");
+        const engine = new BABYLON.Engine(canvas, true);
+        const scene = new BABYLON.Scene(engine);
+
+        // ✅ Camera
+        const camera = new BABYLON.ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 3, 5, BABYLON.Vector3.Zero(), scene);
+        camera.attachControl(canvas, true);
+        camera.upperRadiusLimit = 15;
+
+        // ✅ Lighting
+        const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+        light.intensity = 1.5;
+
+        // ✅ Ground for Reference
+        const ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 10, height: 10 }, scene);
+        ground.position.y = -1;
+        ground.receiveShadows = true;
+
+        let hand; // Declare the hand model
+
+        // ✅ Load the .glb Hand Model
+        BABYLON.SceneLoader.ImportMesh("", "./models/", "robot_playground.glb", scene, function (meshes) {
+            console.log("✅ Hand Model Loaded Successfully!");
+            hand = meshes[0]; // First mesh is usually the container
+
+            // If the model has child meshes, target them
+            if (hand.getChildMeshes().length > 0) {
+                hand = hand.getChildMeshes()[0]; 
+            }
+
+            hand.position.y = 0; // Ensure it's above ground
+            hand.scaling.set(2, 2, 2); // Scale if too small
+            camera.target = hand.position; // Set camera focus
+        }, null, function (scene, message) {
+            console.error("❌ Failed to load model:", message);
+        });
+
+        // ✅ Animation Functions
+        function animateJump() {
+            if (!hand) return;
+            const anim = new BABYLON.Animation("jump", "position.y", 30, 
+                BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
+            
+            const keyFrames = [
+                { frame: 0, value: hand.position.y },
+                { frame: 10, value: hand.position.y + 1 },
+                { frame: 20, value: hand.position.y }
+            ];
+
+            anim.setKeys(keyFrames);
+            scene.beginDirectAnimation(hand, [anim], 0, 20, false);
+        }
+
+        function animateWave() {
+            if (!hand) return;
+            const anim = new BABYLON.Animation("wave", "rotation.z", 30,
+                BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
+
+            const keyFrames = [
+                { frame: 0, value: 0 },
+                { frame: 10, value: Math.PI / 6 },
+                { frame: 20, value: -Math.PI / 6 },
+                { frame: 30, value: 0 }
+            ];
+
+            anim.setKeys(keyFrames);
+            scene.beginDirectAnimation(hand, [anim], 0, 30, false);
+        }
+
+        function animateBend() {
+            if (!hand) return;
+            const anim = new BABYLON.Animation("bend", "rotation.x", 30,
+                BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
+
+            const keyFrames = [
+                { frame: 0, value: 0 },
+                { frame: 10, value: Math.PI / 4 },
+                { frame: 20, value: 0 }
+            ];
+
+            anim.setKeys(keyFrames);
+            scene.beginDirectAnimation(hand, [anim], 0, 20, false);
+        }
+
+        function animateShake() {
+            if (!hand) return;
+            const anim = new BABYLON.Animation("shake", "rotation.y", 30,
+                BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
+
+            const keyFrames = [
+                { frame: 0, value: 0 },
+                { frame: 10, value: Math.PI / 8 },
+                { frame: 20, value: -Math.PI / 8 },
+                { frame: 30, value: 0 }
+            ];
+
+            anim.setKeys(keyFrames);
+            scene.beginDirectAnimation(hand, [anim], 0, 30, false);
+        }
+
+        // ✅ Handle Input
+        document.getElementById("inputBox").addEventListener("keyup", function (event) {
+            if (event.key === "Enter") {
+                const text = event.target.value.toLowerCase();
+                event.target.value = ""; // Clear input
+
+                if (text === "hello") {
+                    animateJump();
+                    animateWave();
+                } else if (text === "bye") {
+                    animateBend();
+                    animateShake();
+                }
+            }
+        });
+
+        // ✅ Render Loop
+        engine.runRenderLoop(() => scene.render());
+
+        // ✅ Resize Handling
+        window.addEventListener("resize", () => engine.resize());
+    </script>
+</body>
+</html>
